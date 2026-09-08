@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>通用管报ETL工具用户操作手册</title>
+  <style>
+    :root {
+      --ink: #17212b;
+      --muted: #5d6975;
+      --paper: #f7f8f5;
+      --panel: #ffffff;
+      --line: #d7ddd8;
+      --brand: #006b5e;
+      --brand-soft: #dff2ed;
+      --accent: #d15b2a;
+      --accent-soft: #fff0e8;
+      --warning: #8a5b00;
+      --warning-soft: #fff5d6;
+      --danger: #a83232;
+      --code: #182126;
+      --shadow: 0 8px 24px rgba(24, 33, 38, 0.08);
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(0, 107, 94, 0.035) 1px, transparent 1px),
+        linear-gradient(rgba(0, 107, 94, 0.035) 1px, transparent 1px),
+        var(--paper);
+      background-size: 28px 28px;
+      font-family: "Noto Sans SC", "Microsoft YaHei UI", sans-serif;
+      line-height: 1.72;
+      letter-spacing: 0;
+    }
+
+    a { color: var(--brand); }
+    code, pre { font-family: "Cascadia Code", "SFMono-Regular", monospace; }
+    code { color: #8d371c; }
+    h1, h2, h3, h4 { line-height: 1.28; letter-spacing: 0; }
+    h1 { margin: 0; font-family: "FZKai-Z03", "STKaiti", serif; font-size: 2.7rem; }
+    h2 { margin: 0 0 18px; font-size: 1.75rem; }
+    h3 { margin: 34px 0 12px; font-size: 1.28rem; }
+    h4 { margin: 24px 0 8px; font-size: 1rem; }
+    p { margin: 8px 0 14px; }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      min-height: 58px;
+      padding: 10px max(24px, calc((100vw - 1500px) / 2));
+      color: #fff;
+      background: var(--ink);
+      border-bottom: 4px solid var(--accent);
+    }
+    .brand { font-weight: 800; font-size: 1.05rem; }
+    .topbar small { color: #cbd4d7; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 42px;
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 34px 32px 80px;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 20px;
+      align-self: start;
+      max-height: calc(100vh - 40px);
+      overflow: auto;
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--brand);
+      box-shadow: var(--shadow);
+    }
+    .sidebar strong { display: block; margin-bottom: 10px; }
+    .sidebar input {
+      width: 100%;
+      height: 38px;
+      margin-bottom: 12px;
+      padding: 0 10px;
+      color: var(--ink);
+      background: #fff;
+      border: 1px solid #aeb8b2;
+      border-radius: 4px;
+      font: inherit;
+    }
+    .sidebar nav { display: grid; gap: 2px; }
+    .sidebar a {
+      display: block;
+      padding: 6px 8px;
+      color: #34414a;
+      text-decoration: none;
+      border-left: 3px solid transparent;
+    }
+    .sidebar a:hover, .sidebar a:focus { color: var(--brand); border-left-color: var(--accent); background: var(--brand-soft); }
+    .sidebar .nav-group { margin-top: 9px; color: var(--muted); font-size: 0.76rem; font-weight: 800; text-transform: uppercase; }
+
+    main { min-width: 0; }
+    .hero {
+      min-height: 310px;
+      padding: 46px clamp(28px, 5vw, 70px);
+      color: #fff;
+      background:
+        linear-gradient(rgba(51, 183, 255, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(51, 183, 255, 0.08) 1px, transparent 1px),
+        #111820;
+      background-size: 24px 24px;
+      border: 1px solid #314251;
+      border-top: 5px solid #33b7ff;
+      border-bottom: 8px solid #1675a8;
+      box-shadow: var(--shadow);
+    }
+    .hero h1 { font-family: "Cascadia Code", "Microsoft YaHei UI", sans-serif; font-size: 2.35rem; font-weight: 800; }
+    .hero .kicker { color: #68c8ff; font-size: 0.82rem; font-weight: 800; }
+    .hero p { max-width: 820px; margin-top: 18px; color: #d7e2e8; font-size: 1.08rem; }
+    .hero .positioning-label { margin-right: 8px; color: #68c8ff; }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+    .hero-meta span { padding: 5px 10px; color: #dff4ff; background: #172a36; border: 1px solid #34657f; border-radius: 4px; }
+
+    section {
+      margin-top: 32px;
+      padding: clamp(24px, 4vw, 46px);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--brand);
+      box-shadow: var(--shadow);
+    }
+    section.service { border-top-color: var(--accent); }
+    .section-lead { color: var(--muted); font-size: 1.04rem; }
+    .eyebrow { color: var(--accent); font-size: 0.78rem; font-weight: 900; text-transform: uppercase; }
+
+    .quick-grid, .two-col, .three-col {
+      display: grid;
+      gap: 16px;
+      margin: 20px 0;
+    }
+    .quick-grid { grid-template-columns: repeat(4, 1fr); }
+    .two-col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .three-col { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .step, .fact {
+      padding: 17px;
+      background: #f9fbfa;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--brand);
+    }
+    .step b { display: block; margin-bottom: 6px; color: var(--brand); }
+    .step .number { float: right; color: #afbbb6; font-size: 1.6rem; font-weight: 900; line-height: 1; }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 28px;
+      align-items: stretch;
+      margin: 24px 0;
+    }
+    .flow-item {
+      position: relative;
+      display: grid;
+      place-content: center;
+      min-height: 94px;
+      padding: 14px;
+      text-align: center;
+      background: var(--brand-soft);
+      border: 2px solid var(--brand);
+      border-radius: 6px;
+      font-weight: 800;
+    }
+    .flow-item:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -24px;
+      top: 50%;
+      color: var(--accent);
+      font-size: 1.7rem;
+      transform: translateY(-50%);
+    }
+    .flow-item.orange { background: var(--accent-soft); border-color: var(--accent); }
+    .flow-item small { display: block; color: var(--muted); font-weight: 500; }
+
+    .callout {
+      margin: 18px 0;
+      padding: 15px 18px;
+      background: var(--warning-soft);
+      border-left: 5px solid var(--warning);
+    }
+    .callout.danger { color: #742020; background: #ffeded; border-left-color: var(--danger); }
+    .callout.info { background: var(--brand-soft); border-left-color: var(--brand); }
+    .callout strong { display: block; margin-bottom: 3px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border: 1px solid var(--line); }
+    table { width: 100%; border-collapse: collapse; background: #fff; font-size: 0.93rem; }
+    th, td { padding: 10px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+    th { color: #fff; background: #33464a; white-space: nowrap; }
+    tr:last-child td { border-bottom: 0; }
+    tr:nth-child(even) td { background: #f7f9f7; }
+
+    pre {
+      position: relative;
+      overflow-x: auto;
+      margin: 14px 0 22px;
+      padding: 18px;
+      color: #e6edf0;
+      background: var(--code);
+      border-left: 5px solid var(--accent);
+      border-radius: 4px;
+      line-height: 1.55;
+      font-size: 0.87rem;
+      white-space: pre;
+    }
+    pre code { color: inherit; }
+    .signature { border-left-color: #55b9a7; }
+    .service-index { columns: 2; padding-left: 22px; }
+    .service-index li { margin: 6px 0; break-inside: avoid; }
+    .before-after { display: grid; grid-template-columns: 1fr 48px 1fr; gap: 12px; align-items: center; }
+    .before-after .arrow { color: var(--accent); text-align: center; font-size: 2rem; }
+    .mini-table { padding: 12px; background: #f8faf8; border: 1px solid var(--line); }
+    .mini-table b { display: block; margin-bottom: 8px; }
+    .tag { display: inline-block; margin: 2px 3px 2px 0; padding: 2px 7px; color: #17463f; background: var(--brand-soft); border-radius: 3px; font-size: .82rem; }
+    .no-results { display: none; padding: 12px; color: var(--danger); }
+    footer { padding: 36px 0 12px; color: var(--muted); text-align: center; }
+
+    @media (max-width: 1050px) {
+      .layout { grid-template-columns: 1fr; padding: 20px; }
+      .sidebar { position: static; max-height: none; }
+      .sidebar nav { grid-template-columns: repeat(3, 1fr); }
+      .quick-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 680px) {
+      h1 { font-size: 2rem; }
+      h2 { font-size: 1.45rem; }
+      .topbar { align-items: flex-start; flex-direction: column; gap: 2px; padding: 12px 18px; }
+      .layout { padding: 12px; }
+      .sidebar { max-height: 330px; }
+      .sidebar nav, .quick-grid, .two-col, .three-col, .flow { grid-template-columns: 1fr; }
+      .flow { gap: 18px; }
+      .flow-item:not(:last-child)::after { content: "↓"; top: auto; right: 50%; bottom: -22px; transform: translateX(50%); }
+      .before-after { grid-template-columns: 1fr; }
+      .before-after .arrow { transform: rotate(90deg); }
+      section { padding: 22px 18px; }
+      .service-index { columns: 1; }
+    }
+    @media print {
+      body { background: #fff; font-size: 10pt; }
+      .topbar, .sidebar { display: none; }
+      .layout { display: block; max-width: none; padding: 0; }
+      .hero, section { box-shadow: none; break-inside: avoid; }
+      section.service { break-before: page; }
+      pre { white-space: pre-wrap; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">通用管报ETL工具 / 用户操作手册</div>
+    <small>参数化配置 · 灵活编排 · 本地执行</small>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar" aria-label="手册目录">
+      <strong>查找说明</strong>
+      <input id="nav-search" type="search" placeholder="输入功能名，例如：分摊" aria-label="搜索目录">
+      <div class="no-results" id="no-results">未找到匹配章节</div>
+      <nav id="guide-nav">
+        <div class="nav-group">开始使用</div>
+        <a href="#overview">界面与快速开始</a>
+        <a href="#schedule">调度表配置</a>
+        <a href="#files">文件与路径规则</a>
+        <div class="nav-group">Service 功能</div>
+        <a href="#allocation">allocation 分摊</a>
+        <a href="#assign-columns">assign_columns 固定列赋值</a>
+        <a href="#check-metadata">check_metadata 元数据检查</a>
+        <a href="#concat">concat 纵向拼接</a>
+        <a href="#append">append_with_overwrite 分区覆盖</a>
+        <a href="#diff-row">diff_by_row 行级差异</a>
+        <a href="#diff-excel">diff_by_row_to_excel 差异报表</a>
+        <a href="#diff-group">diff_by_group 汇总差异</a>
+        <a href="#filter">filter_by_conditions 条件筛选</a>
+        <a href="#filter-group">filter_group_sum_to_excel 汇总报表</a>
+        <a href="#mapping">mapping_1t 规则映射</a>
+        <a href="#merge">merge_dims_attribute 属性补充</a>
+        <a href="#standardize">standardize_columns 字段标准化</a>
+        <a href="#unpivot">unpivot 宽表转长表</a>
+        <div class="nav-group">运行维护</div>
+        <a href="#logs">日志说明</a>
+        <a href="#troubleshooting">常见问题</a>
+        <a href="#feedback">问题反馈清单</a>
+      </nav>
+    </aside>
+
+    <main>
+      <div class="hero">
+        <div class="kicker">LOCAL · CONFIGURABLE · FLEXIBLE</div>
+        <h1>通用管报ETL工具用户操作手册</h1>
+        <p><strong class="positioning-label">系统定位</strong>面向管报场景的本地数据处理工具。通过 Excel 参数表灵活编排清洗、转换、映射、校验、对账与分摊任务，无需修改程序即可组合处理流程；所有任务均在本机执行，无需联网，业务数据不离开本地环境。</p>
+        <div class="hero-meta">
+          <span>参数化配置</span>
+          <span>处理流程灵活组合</span>
+          <span>Excel / Parquet</span>
+          <span>本地离线执行</span>
+        </div>
+      </div>
+
+      <section id="overview">
+        <div class="eyebrow">01 / 开始使用</div>
+        <h2>界面与快速开始</h2>
+        <p class="section-lead">主界面负责选择调度表、预览执行步骤、运行任务并收集日志。调度表中的每一行代表一个可独立执行的 Service 功能。</p>
+        <div class="quick-grid">
+          <div class="step"><span class="number">1</span><b>选择调度表</b>输入 <code>.xlsx</code> 或 <code>.xlsm</code> 文件路径。</div>
+          <div class="step"><span class="number">2</span><b>填写工作表</b>默认为“调度”，可改为实际工作表名。</div>
+          <div class="step"><span class="number">3</span><b>先预览</b>点击“预览任务步骤”，检查顺序和说明。</div>
+          <div class="step"><span class="number">4</span><b>再执行</b>点击“执行调度”，观察进度与任务信息。</div>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>界面元素</th><th>作用</th><th>使用建议</th></tr></thead>
+          <tbody>
+            <tr><td>调度表路径</td><td>指定包含调度配置的 Excel 文件</td><td>使用完整路径，避免移动文件后路径失效</td></tr>
+            <tr><td>调度表名称</td><td>指定 Excel 工作表</td><td>不填写时使用“调度”</td></tr>
+            <tr><td>预览任务步骤</td><td>校验配置并列出 <code>enabled=Y</code> 的任务，不执行数据处理</td><td>修改调度表后先预览</td></tr>
+            <tr><td>执行调度</td><td>按 <code>order</code> 依次运行任务</td><td>执行期间按钮会暂时禁用</td></tr>
+            <tr><td>复制日志</td><td>复制当前任务信息的纯文本</td><td>报错时将日志一并反馈</td></tr>
+            <tr><td>使用说明</td><td>在系统默认浏览器打开本手册</td><td>页面可使用浏览器打印或另存 PDF</td></tr>
+          </tbody>
+        </table></div>
+        <div class="callout info"><strong>推荐操作顺序</strong>保存并关闭正在编辑的输入/输出 Excel 文件，先预览，再执行。任务成功后检查 <code>DONE</code> 行和输出文件。</div>
+      </section>
+
+      <section id="schedule">
+        <div class="eyebrow">02 / 调度核心</div>
+        <h2>调度表配置</h2>
+        <div class="flow" aria-label="调度执行流程图">
+          <div class="flow-item">读取 Excel<small>指定工作表</small></div>
+          <div class="flow-item">校验配置<small>字段、顺序、JSON</small></div>
+          <div class="flow-item orange">筛选并排序<small>enabled=Y / order 升序</small></div>
+          <div class="flow-item">逐步执行<small>失败即中止</small></div>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>列名</th><th>必填</th><th>填写规则</th><th>示例</th></tr></thead>
+          <tbody>
+            <tr><td><code>order</code></td><td>是</td><td>唯一数值；决定执行顺序，可不连续</td><td><code>10</code>、<code>20</code></td></tr>
+            <tr><td><code>function</code></td><td>是</td><td>Service 函数路径</td><td><code>service.unpivot</code></td></tr>
+            <tr><td><code>params</code></td><td>是</td><td>JSON 对象字符串；无参数可填 <code>{}</code> 或留空</td><td><code>{"input_file_path":"D:/data.xlsx",...}</code></td></tr>
+            <tr><td><code>enabled</code></td><td>是</td><td>仅允许 <code>Y</code>、<code>N</code> 或空；不区分大小写</td><td><code>Y</code></td></tr>
+            <tr><td><code>comments</code></td><td>否</td><td>任务说明，在预览和 START 日志中显示</td><td>将月度宽表转成长表</td></tr>
+          </tbody>
+        </table></div>
+        <h3>完整调度行示例</h3>
+        <pre><code>order:    10
+function: service.filter_by_conditions
+params:   {"input_file_path":"D:/finance/detail.xlsx","input_sheet_name":"明细","conditions":{"period":"202601","amount":{"ge":100}},"output_file_path":"D:/finance/output/filtered.parquet"}
+enabled:  Y
+comments: 筛选 2026 年 1 月且金额不小于 100 的记录</code></pre>
+        <div class="callout danger"><strong>任务失败后的行为</strong>任务按顺序串行执行。任何一步抛出错误时，本次调度立即中止，后面的步骤不会继续，也不会自动回滚此前已生成的文件。</div>
+      </section>
+
+      <section id="files">
+        <div class="eyebrow">03 / 通用约定</div>
+        <h2>文件、路径与 JSON 规则</h2>
+        <div class="two-col">
+          <div class="fact"><b>Excel 输入</b><p>支持 <code>.xlsx</code>、<code>.xlsm</code>。存在多个工作表时，请填写对应的 <code>*_sheet_name</code>。</p></div>
+          <div class="fact"><b>Parquet 输入</b><p>文件后缀为 <code>.parquet</code>，不要填写工作表参数。</p></div>
+          <div class="fact"><b>输出目录</b><p>多数 Service 会自动创建输出文件的父目录。输出格式由扩展名决定。</p></div>
+          <div class="fact"><b>Windows 路径</b><p>JSON 中建议使用正斜杠：<code>D:/finance/data.xlsx</code>，避免反斜杠转义。</p></div>
+        </div>
+        <h3>JSON 类型写法</h3>
+        <pre><code>{
+  "text": "ACT",
+  "number": 100.5,
+  "enabled": true,
+  "empty": null,
+  "columns": ["period", "entity", "amount"],
+  "mapping": {"source": "budget", "version": 2}
+}</code></pre>
+        <div class="callout"><strong>Excel 文件占用</strong>输出为 Excel 时，请先关闭同名文件。文件被 Excel 占用通常会导致写入权限错误。</div>
+      </section>
+
+      <section class="service" id="allocation" data-search="allocation 分摊 因子 rate 元数据">
+        <div class="eyebrow">Service 01</div><h2>allocation：按因子分摊</h2>
+        <p class="section-lead">使用分摊因子把待摊金额从“分出维度”分配到“分入维度”，并通过维度元数据将汇总成员展开到基础成员。</p>
+        <div class="flow">
+          <div class="flow-item">待摊数据<small>金额 + 业务维度</small></div>
+          <div class="flow-item">筛选并展开因子<small>out_* / in_* / rate</small></div>
+          <div class="flow-item orange">匹配 × 权重<small>金额 × rate</small></div>
+          <div class="flow-item">分摊结果<small>可聚合、可补固定列</small></div>
+        </div>
+        <pre class="signature"><code>service.allocation(
+  input_file_path, factor_file_path, metadata_file_path, output_file_path,
+  value_columns, input_sheet_name=None, factor_sheet_name=None,
+  metadata_sheet_name=None, rate_column="rate", out_prefix="out_",
+  in_prefix="in_", keep_label=False, group_by=None,
+  group_by_exclude=None, abs_delta=5, factor_output_file_path=None,
+  factor_query=None, assign_result=None
+)</code></pre>
+        <div class="table-wrap"><table><thead><tr><th>核心参数</th><th>说明</th></tr></thead><tbody>
+          <tr><td><code>value_columns</code></td><td>需要分摊的数值列，可填字符串或字符串列表。</td></tr>
+          <tr><td><code>factor_file_path</code></td><td>因子表。至少包含一个 <code>out_*</code>、一个 <code>in_*</code> 和权重列。</td></tr>
+          <tr><td><code>metadata_file_path</code></td><td>维度元数据，默认字段为 <code>dimension</code>、<code>element_code</code>、<code>is_base</code>、<code>parent</code>。</td></tr>
+          <tr><td><code>factor_query</code></td><td>执行前筛选因子，例如按版本或场景选择本次规则。</td></tr>
+          <tr><td><code>factor_output_file_path</code></td><td>可选；保存筛选且展开后的因子，便于审计。</td></tr>
+          <tr><td><code>group_by</code> / <code>group_by_exclude</code></td><td>控制最终聚合维度；二者通常只选一个。</td></tr>
+          <tr><td><code>assign_result</code></td><td>为结果增加或覆盖固定列，例如数据来源、版本。</td></tr>
+        </tbody></table></div>
+        <h3>因子表示意</h3>
+        <div class="table-wrap"><table><thead><tr><th>out_cost_center</th><th>in_product</th><th>rate</th><th>scenario</th></tr></thead><tbody><tr><td>CC100</td><td>P01</td><td>0.6</td><td>ACT</td></tr><tr><td>CC100</td><td>P02</td><td>0.4</td><td>ACT</td></tr></tbody></table></div>
+        <pre><code>{
+  "input_file_path": "D:/data/cost.xlsx",
+  "factor_file_path": "D:/config/factor.xlsx",
+  "metadata_file_path": "D:/config/metadata.xlsx",
+  "output_file_path": "D:/output/allocated.parquet",
+  "value_columns": ["amount"],
+  "factor_query": {"scenario": "ACT"},
+  "assign_result": {"source": "allocation", "version": 1}
+}</code></pre>
+        <div class="callout"><strong>重点检查</strong>同一分出组合内，每个 <code>in_*</code> 字段必须全空或全非空；规则必须至少指定一个分入维度。因子权重列名不叫 <code>rate</code> 时需设置 <code>rate_column</code>。</div>
+      </section>
+
+      <section class="service" id="assign-columns" data-search="assign_columns 赋值 添加列 覆盖 固定值">
+        <div class="eyebrow">Service 02</div><h2>assign_columns：添加或覆盖固定列</h2>
+        <p>为输入数据的每一行设置相同的字段值。适合补充场景、版本、来源系统、批次等审计字段；同名列已存在时会被覆盖。</p>
+        <pre class="signature"><code>service.assign_columns(input_file_path, column_values, output_file_path, input_sheet_name=None)</code></pre>
+        <pre><code>{
+  "input_file_path": "D:/data/detail.xlsx",
+  "input_sheet_name": "明细",
+  "column_values": {"scenario": "BUDGET", "version": 2, "reviewed": false},
+  "output_file_path": "D:/output/detail_tagged.parquet"
+}</code></pre>
+        <div class="before-after"><div class="mini-table"><b>处理前</b><code>account | amount<br>6001 | 120</code></div><div class="arrow">→</div><div class="mini-table"><b>处理后</b><code>account | amount | scenario | version<br>6001 | 120 | BUDGET | 2</code></div></div>
+      </section>
+
+      <section class="service" id="check-metadata" data-search="check_metadata 元数据 校验 成员 合法性">
+        <div class="eyebrow">Service 03</div><h2>check_metadata：维度成员合法性检查</h2>
+        <p>先检查元数据自身是否合法，再检查业务数据中的维度成员是否存在于元数据中。错误明细写入指定文件。</p>
+        <pre class="signature"><code>service.check_metadata(input_file_path, metadata_file_path, output_file_path,
+                       input_sheet_name=None, metadata_sheet_name=None)</code></pre>
+        <pre><code>{
+  "input_file_path": "D:/data/ledger.parquet",
+  "metadata_file_path": "D:/config/metadata.xlsx",
+  "metadata_sheet_name": "维度元数据",
+  "output_file_path": "D:/output/metadata_errors.xlsx"
+}</code></pre>
+        <div class="callout danger"><strong>这是一个“门禁”任务</strong>元数据自身有误时不会生成业务数据检查结果；业务数据存在非法成员时，会先写出错误明细，再抛出错误并中止后续调度。输出文件非空意味着检查未通过。</div>
+      </section>
+
+      <section class="service" id="concat" data-search="concat 拼接 合并 多文件 来源列">
+        <div class="eyebrow">Service 04</div><h2>concat：多个文件纵向拼接</h2>
+        <p>依次读取多个 Excel 或 Parquet 文件并纵向追加。字段不一致时按字段并集对齐，缺少的字段填空值；可为每个来源增加标识。</p>
+        <pre class="signature"><code>service.concat(input_file_paths, output_file_path, input_sheet_names=None,
+               source_column=None, source_values=None)</code></pre>
+        <pre><code>{
+  "input_file_paths": ["D:/data/jan.xlsx", "D:/data/feb.xlsx"],
+  "input_sheet_names": ["明细", "明细"],
+  "source_column": "source_month",
+  "source_values": ["202601", "202602"],
+  "output_file_path": "D:/output/q1.parquet"
+}</code></pre>
+        <div class="callout"><strong>列表长度必须一致</strong><code>input_sheet_names</code>、<code>source_values</code> 一旦提供，其元素数量必须与 <code>input_file_paths</code> 相同。<code>source_column</code> 和 <code>source_values</code> 必须同时提供或同时省略。</div>
+      </section>
+
+      <section class="service" id="append" data-search="append_with_overwrite 追加 覆盖 分区 上传 存量">
+        <div class="eyebrow">Service 05</div><h2>append_with_overwrite：覆盖分区并追加</h2>
+        <p>从存量文件删除符合条件的旧分区，再把上传文件追加到末尾。存量文件本身就是输出文件，会被原位更新。</p>
+        <div class="flow"><div class="flow-item">存量文件<small>保留其他分区</small></div><div class="flow-item orange">删除目标分区<small>overwrite_conditions</small></div><div class="flow-item">校验上传数据<small>每行必须满足条件</small></div><div class="flow-item">追加并原位写回</div></div>
+        <pre class="signature"><code>service.append_with_overwrite(database_file_path, upload_file_path,
+                              overwrite_conditions, database_sheet_name=None,
+                              upload_sheet_name=None)</code></pre>
+        <pre><code>{
+  "database_file_path": "D:/database/history.parquet",
+  "upload_file_path": "D:/upload/actual_202601.xlsx",
+  "upload_sheet_name": "明细",
+  "overwrite_conditions": {"period": "202601", "scenario": "ACT"}
+}</code></pre>
+        <div class="callout danger"><strong>原位更新，执行前请备份</strong><code>overwrite_conditions</code> 不能为空，上传文件也不能为空。只要上传文件中有一行不满足覆盖条件，函数就会拒绝写入。</div>
+      </section>
+
+      <section class="service" id="diff-row" data-search="diff_by_row 差异 对比 行级 新旧">
+        <div class="eyebrow">Service 06</div><h2>diff_by_row：输出行级差异</h2>
+        <p>比较两个数据集，输出只在一侧出现或内容不同的行，并用来源列区分两侧记录。</p>
+        <pre class="signature"><code>service.diff_by_row(first_file_path, second_file_path, output_file_path,
+                    check_columns=None, exclude_columns=None, column_map=None,
+                    first_sheet_name=None, second_sheet_name=None,
+                    diff_source_col="_tmp_diff_src")</code></pre>
+        <div class="table-wrap"><table><thead><tr><th>参数</th><th>用途</th></tr></thead><tbody><tr><td><code>check_columns</code></td><td>只比较指定列。</td></tr><tr><td><code>exclude_columns</code></td><td>比较时排除指定列，例如加载时间。</td></tr><tr><td><code>column_map</code></td><td>两表列名不一致时进行映射。</td></tr><tr><td><code>diff_source_col</code></td><td>输出中标记差异行来自哪一侧的临时字段名。</td></tr></tbody></table></div>
+        <pre><code>{
+  "first_file_path": "D:/data/expected.parquet",
+  "second_file_path": "D:/data/actual.parquet",
+  "check_columns": ["account", "entity", "amount"],
+  "exclude_columns": ["load_time"],
+  "output_file_path": "D:/output/row_diff.parquet"
+}</code></pre>
+      </section>
+
+      <section class="service" id="diff-excel" data-search="diff_by_row_to_excel 差异 Excel 高亮 增删改">
+        <div class="eyebrow">Service 07</div><h2>diff_by_row_to_excel：生成增删改差异报表</h2>
+        <p>先执行行级比较，再按关联键归并新旧记录，生成便于人工检查的 Excel 差异明细。实际文件名会附加增、删、改数量。</p>
+        <pre class="signature"><code>service.diff_by_row_to_excel(first_file_path, second_file_path, output_file_path,
+                             join_keys, check_columns=None, exclude_columns=None,
+                             column_map=None, output_sheet_name="差异明细")</code></pre>
+        <pre><code>{
+  "first_file_path": "D:/data/old.xlsx",
+  "first_sheet_name": "明细",
+  "second_file_path": "D:/data/new.xlsx",
+  "second_sheet_name": "明细",
+  "join_keys": ["voucher_id", "line_id"],
+  "check_columns": ["account", "amount", "description"],
+  "output_file_path": "D:/output/difference.xlsx"
+}</code></pre>
+        <div class="callout info"><strong>选择关联键</strong><code>join_keys</code> 应能稳定识别同一条业务记录。键不唯一或会变化时，增删改统计可能不符合预期。</div>
+      </section>
+
+      <section class="service" id="diff-group" data-search="diff_by_group 汇总 差异 分组 对账">
+        <div class="eyebrow">Service 08</div><h2>diff_by_group：分组汇总差异</h2>
+        <p>分别按维度汇总左右两表，再比较求和结果。适合总账与明细、系统 A 与系统 B 的金额对账。</p>
+        <pre class="signature"><code>service.diff_by_group(left_file_path, left_groupby, left_sum,
+                      right_file_path, output_file_path, right_groupby=None,
+                      right_sum=None, keep_groupby="left", abs_delta=0.5)</code></pre>
+        <pre><code>{
+  "left_file_path": "D:/data/system_a.parquet",
+  "left_groupby": ["period", "entity", "account"],
+  "left_sum": ["amount"],
+  "right_file_path": "D:/data/system_b.parquet",
+  "right_groupby": ["month", "company", "account_code"],
+  "right_sum": ["local_amount"],
+  "keep_groupby": "left",
+  "abs_delta": 0.5,
+  "output_file_path": "D:/output/reconciliation.xlsx"
+}</code></pre>
+        <div class="callout"><strong>字段按位置对应</strong>左右两侧的分组字段列表、求和字段列表应分别等长，并按相同业务含义排列。绝对差异不超过 <code>abs_delta</code> 时视为可忽略。</div>
+      </section>
+
+      <section class="service" id="filter" data-search="filter_by_conditions 筛选 条件 eq in null contains">
+        <div class="eyebrow">Service 09</div><h2>filter_by_conditions：条件筛选</h2>
+        <p>多个字段条件按 AND 组合，只保留全部满足的记录。标量写法等价于 <code>eq</code>。</p>
+        <pre class="signature"><code>service.filter_by_conditions(input_file_path, conditions, output_file_path,
+                             input_sheet_name=None)</code></pre>
+        <div class="table-wrap"><table><thead><tr><th>操作符</th><th>含义</th><th>示例</th></tr></thead><tbody>
+          <tr><td><code>eq</code> / <code>ne</code></td><td>等于 / 不等于</td><td><code>{"scenario":{"ne":"BUDGET"}}</code></td></tr>
+          <tr><td><code>gt</code> / <code>ge</code> / <code>lt</code> / <code>le</code></td><td>数值或日期大小比较</td><td><code>{"amount":{"ge":100}}</code></td></tr>
+          <tr><td><code>in</code> / <code>not_in</code></td><td>属于 / 不属于列表</td><td><code>{"region":{"in":["华东","华南"]}}</code></td></tr>
+          <tr><td><code>contains</code></td><td>字符串包含</td><td><code>{"description":{"contains":"调整"}}</code></td></tr>
+          <tr><td><code>starts_with</code> / <code>ends_with</code></td><td>字符串前缀 / 后缀</td><td><code>{"account":{"starts_with":"6"}}</code></td></tr>
+          <tr><td><code>is_null</code> / <code>is_not_null</code></td><td>空值 / 非空值</td><td><code>{"project":{"is_null":true}}</code></td></tr>
+        </tbody></table></div>
+        <pre><code>{
+  "input_file_path": "D:/data/detail.xlsx",
+  "conditions": {
+    "period": "202601",
+    "region": {"in": ["华东", "华南"]},
+    "amount": {"ge": 100},
+    "description": {"contains": "调整"}
+  },
+  "output_file_path": "D:/output/filtered.parquet"
+}</code></pre>
+      </section>
+
+      <section class="service" id="filter-group" data-search="filter_group_sum_to_excel 筛选 分组 汇总 报表 中文说明">
+        <div class="eyebrow">Service 10</div><h2>filter_group_sum_to_excel：筛选、汇总并导出报表</h2>
+        <p>把条件筛选、分组求和和 Excel 报表导出合成一个步骤。可使用字段对照表在英文列名下增加中文说明行。</p>
+        <div class="flow"><div class="flow-item">读取明细</div><div class="flow-item">条件筛选<small>可省略</small></div><div class="flow-item orange">分组求和<small>可省略</small></div><div class="flow-item">Excel 报表<small>可带中文说明</small></div></div>
+        <pre class="signature"><code>service.filter_group_sum_to_excel(input_file_path, output_file_path,
+  field_mapping_file_path=None, field_mapping_sheet_name=None,
+  conditions=None, group_sum_params=None, input_sheet_name=None,
+  output_sheet_name="Sheet1")</code></pre>
+        <pre><code>{
+  "input_file_path": "D:/data/detail.parquet",
+  "conditions": {"scenario": "ACT", "amount": {"ne": 0}},
+  "group_sum_params": {
+    "group_by": ["period", "entity", "account"],
+    "sum_by": ["amount"],
+    "abs_delta": 0.01
+  },
+  "field_mapping_file_path": "D:/config/fields.xlsx",
+  "field_mapping_sheet_name": "字段说明",
+  "output_file_path": "D:/output/report.xlsx",
+  "output_sheet_name": "汇总"
+}</code></pre>
+        <div class="callout info"><strong>字段说明表</strong>必须包含 <code>standard</code> 和 <code>comments</code> 两列。配置后，输出第一行为英文列名，第二行为中文说明，第三行开始是数据。</div>
+      </section>
+
+      <section class="service" id="mapping" data-search="mapping_1t 映射 规则 优先级 keep_row">
+        <div class="eyebrow">Service 11</div><h2>mapping_1t：配置驱动的单表映射</h2>
+        <p>读取映射规则，对输入表执行条件匹配、目标字段赋值和行保留控制。适用于科目归类、组织映射、产品线转换等规则较多的场景。</p>
+        <pre class="signature"><code>service.mapping_1t(input_file_path, config_file_path, output_file_path,
+                   input_sheet_name=None, config_sheet_name=None)</code></pre>
+        <div class="table-wrap"><table><thead><tr><th>规则字段</th><th>作用</th></tr></thead><tbody>
+          <tr><td><code>order_execution</code></td><td>映射轮次；控制规则组执行先后。</td></tr>
+          <tr><td><code>priority</code></td><td>同一轮次内的规则优先级。</td></tr>
+          <tr><td><code>mapping_code</code></td><td>规则唯一标识。</td></tr>
+          <tr><td><code>keep_row</code></td><td>控制命中规则后的记录是否保留。</td></tr>
+          <tr><td><code>source_field_1</code> / <code>source_code_1</code></td><td>第一个来源字段及匹配值；可按规则表支持更多序号。</td></tr>
+          <tr><td><code>output_field_1</code> / <code>output_code_1</code></td><td>第一个输出字段及赋值；可按规则表支持更多序号。</td></tr>
+        </tbody></table></div>
+        <pre><code>{
+  "input_file_path": "D:/data/raw.xlsx",
+  "input_sheet_name": "明细",
+  "config_file_path": "D:/config/mapping.xlsx",
+  "config_sheet_name": "映射规则",
+  "output_file_path": "D:/output/mapped.parquet"
+}</code></pre>
+        <div class="callout"><strong>规则优先级很重要</strong>映射结果与规则表内容密切相关。先使用少量样本验证命中顺序、保留行规则和输出字段，再用于完整数据。</div>
+      </section>
+
+      <section class="service" id="merge" data-search="merge_dims_attribute 维度 属性 关联 名称 上级">
+        <div class="eyebrow">Service 12</div><h2>merge_dims_attribute：补充维度属性</h2>
+        <p>按业务数据中的成员编码关联维度元数据，将成员名称、上级编码等属性补充为新列。可一次配置多个业务维度。</p>
+        <pre class="signature"><code>service.merge_dims_attribute(input_file_path, metadata_file_path, relations,
+                             output_file_path, input_sheet_name=None,
+                             metadata_sheet_name=None)</code></pre>
+        <pre><code>{
+  "input_file_path": "D:/data/ledger.parquet",
+  "metadata_file_path": "D:/config/metadata.xlsx",
+  "metadata_sheet_name": "维度元数据",
+  "relations": {
+    "account": {
+      "dimension": "d_account",
+      "attributes": {
+        "element_name": "account_name",
+        "parent": "account_parent"
+      }
+    },
+    "entity": {
+      "dimension": "d_entity",
+      "attributes": {"element_name": "entity_name"}
+    }
+  },
+  "output_file_path": "D:/output/ledger_enriched.parquet"
+}</code></pre>
+        <div class="callout info"><strong>relations 的阅读方法</strong>最外层键是输入表字段；<code>dimension</code> 是元数据中要筛选的维度值；<code>attributes</code> 的键是元数据属性列，值是输出的新列名。</div>
+      </section>
+
+      <section class="service" id="standardize" data-search="standardize_columns 标准化 列名 类型 float string">
+        <div class="eyebrow">Service 13</div><h2>standardize_columns：统一字段名和类型</h2>
+        <p>根据规则表选择并重命名输入字段、补齐缺失的标准字段、调整列顺序，并按可选的 <code>dtype</code> 转换类型。</p>
+        <pre class="signature"><code>service.standardize_columns(input_file_path, config_file_path, field_name,
+                            output_file_path, input_sheet_name=None,
+                            config_sheet_name=None)</code></pre>
+        <h3>规则表示意</h3>
+        <div class="table-wrap"><table><thead><tr><th>source_field</th><th>standard</th><th>dtype</th></tr></thead><tbody><tr><td>公司编码</td><td>entity</td><td>string</td></tr><tr><td>本币金额</td><td>amount</td><td>float</td></tr><tr><td>期间</td><td>period</td><td>string</td></tr><tr><td>（空）</td><td>scenario</td><td>string</td></tr></tbody></table></div>
+        <pre><code>{
+  "input_file_path": "D:/data/raw.xlsx",
+  "config_file_path": "D:/config/columns.xlsx",
+  "config_sheet_name": "字段规则",
+  "field_name": "source_field",
+  "output_file_path": "D:/output/standardized.parquet"
+}</code></pre>
+        <div class="callout danger"><strong>类型取值限制</strong><code>dtype</code> 目前只支持 <code>float</code> 和 <code>string</code>。无法转为 float 的非空值会报错；规则中的 <code>standard</code> 不得重复。规则未映射的输入列不会进入结果。</div>
+      </section>
+
+      <section class="service" id="unpivot" data-search="unpivot 逆透视 宽表 长表 月份">
+        <div class="eyebrow">Service 14</div><h2>unpivot：宽表转长表</h2>
+        <p>将多列指标折叠成“变量列 + 值列”。最常见场景是把一月、二月、三月等月份列转换成多行。</p>
+        <pre class="signature"><code>service.unpivot(input_file_path, unpivot_columns, variable_column,
+                value_column, output_file_path, input_sheet_name=None)</code></pre>
+        <div class="before-after">
+          <div class="mini-table"><b>宽表</b><code>account | 一月 | 二月<br>6001 | 100 | 120</code></div>
+          <div class="arrow">→</div>
+          <div class="mini-table"><b>长表</b><code>account | month | amount<br>6001 | 一月 | 100<br>6001 | 二月 | 120</code></div>
+        </div>
+        <pre><code>{
+  "input_file_path": "D:/data/monthly.xlsx",
+  "input_sheet_name": "月度数据",
+  "unpivot_columns": ["一月", "二月", "三月"],
+  "variable_column": "month",
+  "value_column": "amount",
+  "output_file_path": "D:/output/monthly_long.parquet"
+}</code></pre>
+        <div class="callout"><strong>列名必须准确</strong><code>unpivot_columns</code> 中任一列不存在都会导致任务失败；没有列入该列表的字段作为标识列保留在每一条结果中。</div>
+      </section>
+
+      <section id="logs">
+        <div class="eyebrow">04 / 运行维护</div><h2>状态与日志说明</h2>
+        <div class="table-wrap"><table><thead><tr><th>类型</th><th>含义</th><th>处理方式</th></tr></thead><tbody>
+          <tr><td><span class="tag">START</span></td><td>某一步已开始，显示序号、函数和 comments</td><td>等待对应的 DONE 或错误</td></tr>
+          <tr><td><span class="tag">DONE</span></td><td>某一步成功完成，显示耗时和返回的输出路径</td><td>检查输出文件是否符合预期</td></tr>
+          <tr><td><span class="tag">INFO</span></td><td>处理统计或普通说明</td><td>用于了解输入输出行数等信息</td></tr>
+          <tr><td><span class="tag">WARNING</span></td><td>数据可继续处理，但存在需要关注的情况</td><td>检查来源位置和消息内容</td></tr>
+          <tr><td><span class="tag">ERROR</span></td><td>任务执行失败</td><td>查看错误位置、错误代码和完整调用栈</td></tr>
+        </tbody></table></div>
+        <p>状态栏显示当前步骤；进度条按已完成任务数更新。“复制日志”会复制当前界面的所有纯文本日志。</p>
+      </section>
+
+      <section id="troubleshooting">
+        <div class="eyebrow">05 / 排错</div><h2>常见问题</h2>
+        <div class="table-wrap"><table><thead><tr><th>现象</th><th>常见原因</th><th>处理建议</th></tr></thead><tbody>
+          <tr><td>找不到文件</td><td>路径拼写错误、相对路径基准不明确、文件已移动</td><td>改用完整路径，并在资源管理器确认文件存在</td></tr>
+          <tr><td>找不到工作表</td><td><code>*_sheet_name</code> 与 Excel 标签名称不一致</td><td>检查空格、大小写和隐藏工作表</td></tr>
+          <tr><td>params 解析失败</td><td>JSON 使用单引号、末尾多逗号、反斜杠未转义</td><td>使用双引号；Windows 路径改用 <code>/</code></td></tr>
+          <tr><td>缺少必填列</td><td>调度表或业务配置表字段名不准确</td><td>对照本手册参数表检查列头</td></tr>
+          <tr><td>PermissionError</td><td>输出 Excel 正被打开，或目录无写入权限</td><td>关闭文件；选择有权限的输出目录</td></tr>
+          <tr><td>任务停在某一步</td><td>大文件处理耗时、网络盘速度慢</td><td>观察日志和磁盘活动；先用少量数据验证配置</td></tr>
+          <tr><td>后续任务没有运行</td><td>前一步抛错后调度自动中止</td><td>修复第一处 ERROR 后重新执行</td></tr>
+          <tr><td>结果出现空列</td><td>拼接字段不一致，或标准化规则要求补齐字段</td><td>确认这是预期对齐行为，否则调整源文件或规则</td></tr>
+        </tbody></table></div>
+      </section>
+
+      <section id="feedback">
+        <div class="eyebrow">06 / 问题反馈</div><h2>提交问题时请提供</h2>
+        <div class="three-col">
+          <div class="fact"><b>运行信息</b><p>窗体标题中的版本号、操作时间、Windows 版本。</p></div>
+          <div class="fact"><b>操作步骤</b><p>点击了哪个按钮、调度工作表名称、失败步骤。</p></div>
+          <div class="fact"><b>完整日志</b><p>点击“复制日志”，保留 ERROR 位置和调用栈。</p></div>
+          <div class="fact"><b>调度配置</b><p>相关行的 function、params、enabled、comments。</p></div>
+          <div class="fact"><b>样本结构</b><p>输入文件列名、数据类型和少量脱敏样本。</p></div>
+          <div class="fact"><b>预期与实际</b><p>期望输出、实际输出路径及差异描述。</p></div>
+        </div>
+        <div class="callout danger"><strong>数据安全</strong>发送日志、配置或样本前，请移除账号、密码、Token、客户信息、员工信息及其他敏感数据。</div>
+      </section>
+
+      <footer>通用管报ETL工具用户操作手册 · 随应用本地提供，无需联网</footer>
+    </main>
+  </div>
+
+  <script>
+    const searchInput = document.getElementById("nav-search");
+    const nav = document.getElementById("guide-nav");
+    const noResults = document.getElementById("no-results");
+    const links = Array.from(nav.querySelectorAll("a"));
+
+    searchInput.addEventListener("input", () => {
+      const query = searchInput.value.trim().toLocaleLowerCase("zh-CN");
+      let visibleCount = 0;
+      links.forEach((link) => {
+        const target = document.querySelector(link.getAttribute("href"));
+        const searchable = `${link.textContent} ${target?.dataset.search ?? ""}`.toLocaleLowerCase("zh-CN");
+        const visible = !query || searchable.includes(query);
+        link.style.display = visible ? "block" : "none";
+        if (visible) visibleCount += 1;
+      });
+      noResults.style.display = visibleCount === 0 ? "block" : "none";
+    });
+  </script>
+</body>
+</html>
