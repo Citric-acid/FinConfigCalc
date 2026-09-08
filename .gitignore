@@ -5,7 +5,6 @@ __pycache__/
 .venv/
 dist/
 build/
-tests/fixture/*.xlsx
-tests/fixture/tmp/
+tests/
 *.egg-info/
 /config.py
