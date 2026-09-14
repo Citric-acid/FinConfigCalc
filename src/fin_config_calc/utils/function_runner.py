@@ -245,7 +245,8 @@ def _parse_params(value: Any) -> Mapping[str, Any]:
     if isinstance(value, str):
         if not value.strip():
             return {}
-        params = json.loads(value)
+        # strict=False 允许 JSON 字符串值内包含换行等控制字符（多行 SQL）
+        params = json.loads(value, strict=False)
         if isinstance(params, Mapping):
             return params
     raise TypeError("参数 必须是 dict 或 JSON 对象字符串")

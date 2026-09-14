@@ -1,7 +1,7 @@
 # FinConfigCalc
 
-FinConfigCalc 是一款面向管理报表加工场景的本地数据处理工具。财务人员通过 Excel 参数表配置
-加工规则，即可将多个上游系统导出的数据自动处理成口径统一、可供分析的管报明细表。
+FinConfigCalc 是一款面向企业财务管理报表加工场景的本地数据处理工具。财务人员通过Excel参数表配置
+加工规则，即可将多个上游系统导出的数据自动处理成口径统一、可供分析的明细底表。
 
 ## 管报是怎样加工出来的
 
@@ -34,7 +34,7 @@ flowchart LR
 这一阶段需要统一各来源 Excel 的字段、粒度和业务口径，并保留可追溯的业务明细。传统做法
 通常包含大量重复的 Excel 操作：
 
-- 用 `VLOOKUP`、`XLOOKUP` 等公式完成科目、组织、产品线和管理口径映射；
+- 用 `VLOOKUP`、`XLOOKUP` 等公式完成科目、组织、产品线和考核口径映射；
 - 用透视表或分类汇总按主体、期间、科目等维度进行分组聚合；
 - 用 `SUMIFS`、辅助列或手工勾稽比对不同来源的数据；
 - 用公式按照人数、收入、面积或其他因子分摊公共费用；
@@ -47,8 +47,7 @@ Excel 参数表，工具便可按既定顺序自动执行。规则验证通过�
 
 ### 3. 汇总呈现
 
-明细加工完成后，可以使用成熟的 BI 工具或 Excel 制作损益表、费用分析、经营看板和其他管理
-分析。不同团队对指标、版式和交互方式的要求差异较大，因此 FinConfigCalc 不处理这一阶段。
+明细加工完成后，财务分析师可通过成熟的BI工具或Excel制作损益表或经营看板，FinConfigCalc 不处理这一阶段。
 
 ## 工具带来的价值
 
@@ -85,23 +84,66 @@ FinConfigCalc\FinConfigCalc.exe
 
 ### 方式二：源码调用
 
-适合开发、调试或需要修改处理逻辑的用户。需要先取得完整源码，并准备好仓库根目录下的
-`.venv` Python 环境。
+适合开发、调试或需要修改处理逻辑的用户。当前项目按 Windows 环境维护，源码运行需要：
 
-首次运行前，在仓库根目录安装项目及运行依赖：
+| 项目 | 要求 |
+| --- | --- |
+| 操作系统 | Windows 10 或 Windows 11 |
+| Python | 3.12 或更高版本，本项目以 3.12 为基准 |
+| 环境管理 | Miniconda 或 Anaconda |
+| 网络 | 首次安装依赖时需要，运行管报任务时不需要联网 |
+
+#### 1. 获取代码
+
+使用 Git 克隆仓库：
 
 ```powershell
+git clone https://github.com/Citric-acid/-FinConfigCalc.git
+Set-Location .\-FinConfigCalc
+```
+
+也可以下载源码压缩包并解压，然后在 PowerShell 中进入包含 `pyproject.toml` 的项目根目录。
+
+#### 2. 创建项目环境
+
+在项目根目录创建 Python 3.12 环境。`--prefix .venv` 会将环境放在当前项目内，避免与其他
+Python 项目相互影响：
+
+```powershell
+conda create --prefix .venv python=3.12 pip -y
+```
+
+如果命令提示找不到 `conda`，请先安装 Miniconda 或 Anaconda，再重新打开 PowerShell。仓库中
+已经存在可用的 `.venv` 时，可以跳过此步骤。
+
+#### 3. 安装项目
+
+始终使用项目环境中的 Python 安装依赖：
+
+```powershell
+.\.venv\python.exe -m pip install --upgrade pip
 .\.venv\python.exe -m pip install -e .
 ```
 
-安装完成后，通过 Python 模块启动同一个调度界面：
+#### 4. 验证环境
+
+```powershell
+.\.venv\python.exe --version
+.\.venv\python.exe -c "import fin_config_calc, polars, textual; print('环境安装成功')"
+```
+
+第一条命令应显示 Python 3.12，第二条命令应输出“环境安装成功”。
+
+#### 5. 启动工具
+
+通过 Python 模块启动与 EXE 版本相同的调度界面：
 
 ```powershell
 .\.venv\python.exe -m fin_config_calc.ui
 ```
 
-源码方式和 EXE 方式使用相同的调度表、功能参数和执行流程。请使用 `.venv\python.exe`，不要
-使用 `.venv\Scripts\python.exe` 或系统 Python。
+源码方式和 EXE 方式使用相同的调度表、功能参数和执行流程。本项目的解释器位于
+`.venv\python.exe`；不要使用 `.venv\Scripts\python.exe`、系统 Python 或全局安装的工具。
 
 ### 准备调度表
 
@@ -181,7 +223,7 @@ ui -> service -> utils
 
 ## 本地开发
 
-安装项目及开发依赖：
+完成上述源码环境安装后，如需运行测试和代码检查，再安装开发依赖：
 
 ```powershell
 .\.venv\python.exe -m pip install -e ".[dev]"
@@ -221,15 +263,3 @@ dist\FinConfigCalc\FinConfigCalc.exe
 Textual 运行在终端中，因此不能使用 PyInstaller 的 `--windowed` 模式。分发时必须复制整个
 `dist\FinConfigCalc` 目录；目录版也更适合 Polars 等包含原生依赖的组件。
 
-## 还需要补充的业务信息
-
-为了让这份说明更贴近实际推广和交接，建议后续补充以下内容：
-
-1. 一个经过脱敏的真实管报案例，包括原始文件、配置表、加工步骤和最终结果截图。
-2. 当前主要服务的报表类型和使用部门，例如损益、费用、预算、经营分析或合并管理报表。
-3. 实际可量化的改善数据，例如月度加工耗时、涉及文件数、数据量以及上线前后的差错情况。
-4. 程序包的获取位置、版本发布方式、负责人和问题反馈渠道。
-5. 团队认可的配置归档、复核、审批和备份要求。
-
-这些信息不影响工具运行，但会让新用户更快判断它是否适合自己的工作，也能让“节省了多少时间、
-降低了什么风险”从原则性描述变成可信的实际案例。

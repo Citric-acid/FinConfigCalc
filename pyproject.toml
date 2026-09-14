@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fin-config-calc"
-version = "0.1.0"
+version = "0.1.1"
 description = "Excel-configured financial data processing and allocation tools"
 requires-python = ">=3.12"
 dependencies = [
