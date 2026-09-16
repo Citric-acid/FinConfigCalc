@@ -64,6 +64,7 @@ def append_with_overwrite(
 
     输入数据：
         database_file_path: 作为存量数据库的 XLSX 或 Parquet 文件路径，也是输出路径。
+            文件不存在时视为空库，写入时自动创建。
         upload_file_path: 待上传的 Excel 或 Parquet 文件路径。
         overwrite_conditions: 要覆盖的数据分区条件。所有条件按 AND 组合，上传文件中的
             每一行都必须满足这些条件，例如
@@ -82,10 +83,15 @@ def append_with_overwrite(
     if not overwrite_conditions:
         raise ValueError("overwrite_conditions 不能为空")
 
-    database = read_dataframe(database_file_path, database_sheet_name)
     upload = read_dataframe(upload_file_path, upload_sheet_name)
     if upload.is_empty():
         raise ValueError("上传文件不能为空")
+
+    if Path(database_file_path).exists():
+        database = read_dataframe(database_file_path, database_sheet_name)
+    else:
+        logger.info("存量文件 {} 不存在，将新建该文件。", database_file_path)
+        database = upload.clear()
 
     matching_upload = filter_by_conditions(upload, overwrite_conditions)
     if matching_upload.height != upload.height:
