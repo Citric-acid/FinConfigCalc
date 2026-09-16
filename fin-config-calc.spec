@@ -1,9 +1,12 @@
 import sys
+from importlib.metadata import version
 from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules, copy_metadata
 
 
+# 版本来自已安装的包元数据，修改 pyproject.toml 后需重新 pip install -e .
+app_version = version("fin-config-calc")
 hidden_imports = collect_submodules("fin_config_calc")
 data_files = collect_data_files(
     "fin_config_calc",
@@ -65,5 +68,5 @@ distribution = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name="FinConfigCalc",
+    name=f"FinConfigCalc-{app_version}",
 )

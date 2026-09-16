@@ -5,6 +5,7 @@ __pycache__/
 .venv/
 dist/
 build/
+Demo/
 docs/
 tests/
 *.egg-info/

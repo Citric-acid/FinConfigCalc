@@ -254,12 +254,15 @@ ui -> service -> utils
 .\.venv\python.exe -m PyInstaller --clean --noconfirm fin-config-calc.spec
 ```
 
-构建结果位于：
+构建结果按版本号输出，例如 0.1.1 版位于：
 
 ```text
-dist\FinConfigCalc\FinConfigCalc.exe
+dist\FinConfigCalc-0.1.1\FinConfigCalc.exe
 ```
 
+版本号取自 `pyproject.toml` 中的 `version`；修改后需先重新执行 `pip install -e .`，再打包。
+不同版本的输出目录互不覆盖，可在 `dist` 中并存。
+
 Textual 运行在终端中，因此不能使用 PyInstaller 的 `--windowed` 模式。分发时必须复制整个
-`dist\FinConfigCalc` 目录；目录版也更适合 Polars 等包含原生依赖的组件。
+`dist\FinConfigCalc-<版本号>` 目录；目录版也更适合 Polars 等包含原生依赖的组件。
 
