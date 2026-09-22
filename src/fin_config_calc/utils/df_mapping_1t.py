@@ -159,18 +159,27 @@ def _validate_mapping_layout(
             raise ValueError("同一个['order_execution']下，output_field_XX的组合方式必须是唯一的。")
 
 
-def mapping_1t(
+MISS_ORDER_COLUMN = "miss_order_execution"
+
+
+def mapping_1t_with_missed(
     df: pl.DataFrame,
     mapping_table: pl.DataFrame,
-    miss_ok: bool = True,
-) -> pl.DataFrame:
-    """按执行顺序应用单表映射配置，并返回保留行。"""
+) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """按执行顺序应用单表映射配置，返回保留行及各批次未命中的行。
+
+    未命中行保留其进入该批次时的全部列，并追加 ``miss_order_execution`` 标记批次；
+    未命中行不参与后续批次。无未命中时第二个返回值为空 DataFrame。
+    """
     input_height = df.height
+    row_pid = "_tmp_mapping_1t_pid"
     map_tables, output_fields = split_mapping_table(
         mapping_table,
         prefix_output="qwer123_",
     )
+    missed_frames: list[pl.DataFrame] = []
     for map_df, map_output_fields in zip(map_tables, output_fields, strict=True):
+        order_execution = map_df.item(0, "order_execution")
         map_df = map_df.rename(
             {
                 "rule_dimension": "映射规则类型",
@@ -179,24 +188,50 @@ def mapping_1t(
             }
         )
         need_fields = ["keep_row", *map_output_fields]
-        df = MAPPING_N(
-            input_df=df,
+        batch_input = df.with_row_index(row_pid)
+        mapped = MAPPING_N(
+            input_df=batch_input,
             mapping_df=map_df,
             need_fields=need_fields,
             drop_if_exists=True,
-        ).mapping_all(miss_ok=miss_ok)
+        ).mapping_all(miss_ok=True)
+        # 未命中行的映射轨迹为空
+        missed_mask = pl.col("map_trc_keep_row").is_null()
+        missed_pids = mapped.filter(missed_mask).get_column(row_pid)
+        if not missed_pids.is_empty():
+            missed_frames.append(
+                batch_input.filter(pl.col(row_pid).is_in(missed_pids.implode()))
+                .drop(row_pid)
+                .with_columns(pl.lit(order_execution).alias(MISS_ORDER_COLUMN))
+            )
         df = rename_columns(
-            df,
+            mapped.filter(~missed_mask).drop(row_pid),
             {
                 column: column.replace("qwer123_", "")
-                for column in df.columns
+                for column in mapped.columns
                 if "qwer123_" in column
             },
         ).filter(pl.col("keep_row") == "是")
+    missed = (
+        pl.concat(missed_frames, how="diagonal_relaxed") if missed_frames else pl.DataFrame()
+    )
     logger.info(
-        "单表映射完成：执行 {} 个批次，输入 {} 行，输出 {} 行。",
+        "单表映射完成：执行 {} 个批次，输入 {} 行，输出 {} 行，未命中 {} 行。",
         len(map_tables),
         input_height,
         df.height,
+        missed.height,
     )
-    return df
+    return df, missed
+
+
+def mapping_1t(
+    df: pl.DataFrame,
+    mapping_table: pl.DataFrame,
+    miss_ok: bool = True,
+) -> pl.DataFrame:
+    """按执行顺序应用单表映射配置，并返回保留行。"""
+    result, missed = mapping_1t_with_missed(df, mapping_table)
+    if not missed.is_empty() and not miss_ok:
+        raise ValueError(f"单表映射过程中，有未命中规则的数据({missed.height} 行)")
+    return result

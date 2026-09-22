@@ -608,6 +608,7 @@ comments: 筛选 2026 年 1 月且金额不小于 100 的记录</code></pre>
   "output_file_path": "D:/output/mapped.parquet"
 }</code></pre>
         <div class="callout"><strong>规则优先级很重要</strong>映射结果与规则表内容密切相关。先使用少量样本验证命中顺序、保留行规则和输出字段，再用于完整数据。</div>
+        <div class="callout info"><strong>未命中行的处理</strong>任一轮次存在未命中任何规则的记录时，不会生成结果文件，而是把这些记录写入与输出文件同目录的 <code>&lt;文件名&gt;_未命中.xlsx</code>（含 <code>miss_order_execution</code> 列标记未命中的轮次），随后报错中断。请据此补充规则后重新运行。</div>
       </section>
 
       <section class="service" id="merge" data-search="merge_dims_attribute 维度 属性 关联 名称 上级">
