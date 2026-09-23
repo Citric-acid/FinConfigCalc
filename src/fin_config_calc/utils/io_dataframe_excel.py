@@ -7,49 +7,21 @@ from loguru import logger
 from openpyxl import Workbook, load_workbook
 
 
-@overload
-def read_excel(
+def _read_sheet_rows(
     file_path: str | Path,
     sheet_name: str | None = None,
-    *,
-    as_dict: Literal[False] = False,
-) -> pl.DataFrame: ...
+) -> tuple[str, list[tuple[Any, ...]]]:
+    """读取指定 Excel 文件中的工作表。
 
+    作用：
+        1. 校验文件存在性和扩展名；
+        2. 解析工作簿并选择目标工作表；
+        3. 返回选中的工作表名以及所有单元格行数据。
 
-@overload
-def read_excel(
-    file_path: str | Path,
-    sheet_name: str | None = None,
-    *,
-    as_dict: Literal[True],
-) -> dict[Any, Any]: ...
-
-
-def read_excel(
-    file_path: str | Path,
-    sheet_name: str | None = None,
-    *,
-    as_dict: bool = False,
-) -> pl.DataFrame | dict[Any, Any]:
-    """读取 Excel 工作表内容。
-
-    功能：
-        读取指定 Excel 文件中的工作表。默认将第一行作为列名并返回 Polars
-        DataFrame；当 ``as_dict=True`` 时，要求工作表恰好包含两列，并将第一列
-        作为键、第二列作为值返回字典。
-
-    输入数据：
-        file_path: Excel 文件路径，文件必须存在。
-        sheet_name: 要读取的工作表名称。工作簿仅有一个工作表时可以为空；存在多个
-            工作表时必须指定。
-        as_dict: 是否以字典形式返回，默认为 False。
-
-    输出结果：
-        ``as_dict=False`` 时返回 Polars DataFrame；``as_dict=True`` 时返回字典。
-
-    使用限制：
-        支持 ``.xlsx`` 和 ``.xlsm`` 文件。工作表第一行必须是非空且不重复的列名；
-        字典模式下键不能为空或重复。
+    重点：
+        Excel 中常见一些“尾部空列”会在读取时表现为较短的行，例如表头为 18
+        列，但实际数据行只写到了第 13 列；这里先保留原始行结构，随后由
+        `_normalize_excel_rows` 统一补齐空值，避免在此阶段直接报错。
     """
     path = Path(file_path)
     if not path.is_file():
@@ -83,39 +55,64 @@ def read_excel(
         for row in rows
     ):
         width -= 1
-    rows = [row[:width] for row in rows]
+    rows = [tuple(row[:width]) for row in rows]
 
+    return selected_sheet_name, rows
+
+
+def _normalize_excel_rows(
+    rows: list[tuple[Any, ...]],
+    *,
+    sheet_name: str,
+    file_path: str | Path,
+) -> tuple[list[str], list[tuple[Any, ...]]]:
+    """清洗 Excel 行数据，使其符合“表头 + 等宽数据行”的标准。
+
+    处理内容：
+        1. 取第一行作为表头，并确认它非空且不重复；
+        2. 去掉表尾全空列（例如末尾有多个空单元格，或全为空的右侧列）；
+        3. 对数据行如果比表头短，按尾部补 `None`，保持列数与表头一致；
+        4. 若某行比表头更长，则认定为真实结构异常，抛出错误，避免静默截断。
+
+    这样既兼容真实业务里常见的“尾部空值省略”写法，也保留对明显错误数据的
+    保护，避免把脏数据悄悄吞掉。
+    """
     headers = list(rows[0])
     if not headers or any(header is None or str(header).strip() == "" for header in headers):
-        raise ValueError(f"工作表表头不能为空：{selected_sheet_name}")
+        raise ValueError(f"工作表表头不能为空：{sheet_name}")
 
     column_names = [str(header) for header in headers]
     if len(column_names) != len(set(column_names)):
-        raise ValueError(f"工作表表头不能重复：{selected_sheet_name}")
+        raise ValueError(f"工作表表头不能重复：{sheet_name}")
 
     expected_width = len(column_names)
+    normalized_rows: list[tuple[Any, ...]] = []
     for row_number, row in enumerate(rows[1:], start=2):
-        if len(row) != expected_width:
+        if len(row) > expected_width:
             raise ValueError(
-                f"Excel 数据列数与表头不一致：{path}，工作表 {selected_sheet_name}，"
+                f"Excel 数据列数与表头不一致：{file_path}，工作表 {sheet_name}，"
                 f"第 {row_number} 行有 {len(row)} 列，表头有 {expected_width} 列"
             )
+        normalized_rows.append(tuple(row) + (None,) * (expected_width - len(row)))
 
-    dataframe = pl.DataFrame(rows[1:], schema=column_names, orient="row", infer_schema_length=None)
-    if not as_dict:
-        return dataframe
+    return column_names, normalized_rows
 
-    if dataframe.width != 2:
-        raise ValueError(f"字典模式要求工作表恰好包含两列，当前为 {dataframe.width} 列")
 
-    keys = dataframe.get_column(column_names[0]).to_list()
-    if any(key is None for key in keys):
-        raise ValueError("字典模式下第一列的键不能为空")
-    if len(keys) != len(set(keys)):
-        raise ValueError("字典模式下第一列的键不能重复")
-
-    values = dataframe.get_column(column_names[1]).to_list()
-    return dict(zip(keys, values, strict=True))
+def read_excel(
+    file_path: str | Path,
+    sheet_name: str | None = None,
+) -> pl.DataFrame:
+    """读取 Excel 工作表内容，并返回 Polars DataFrame。"""
+    selected_sheet_name, rows = _read_sheet_rows(file_path, sheet_name)
+    column_names, normalized_rows = _normalize_excel_rows(
+        rows, sheet_name=selected_sheet_name, file_path=file_path
+    )
+    return pl.DataFrame(
+        normalized_rows,
+        schema=column_names,
+        orient="row",
+        infer_schema_length=None,
+    )
 
 
 def write_excel(
