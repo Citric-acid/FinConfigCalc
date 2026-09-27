@@ -35,7 +35,5 @@ def mapping_1t(
         missed_path = write_dataframe(
             missed, output_path.with_name(f"{output_path.stem}_未命中.xlsx")
         )
-        raise ValueError(
-            f"单表映射存在 {missed.height} 行未命中规则，明细已输出至：{missed_path}"
-        )
+        raise ValueError(f"单表映射存在 {missed.height} 行未命中规则，明细已输出至：{missed_path}")
     return write_dataframe(result, output_file_path)

@@ -212,9 +212,7 @@ def mapping_1t_with_missed(
                 if "qwer123_" in column
             },
         ).filter(pl.col("keep_row") == "是")
-    missed = (
-        pl.concat(missed_frames, how="diagonal_relaxed") if missed_frames else pl.DataFrame()
-    )
+    missed = pl.concat(missed_frames, how="diagonal_relaxed") if missed_frames else pl.DataFrame()
     logger.info(
         "单表映射完成：执行 {} 个批次，输入 {} 行，输出 {} 行，未命中 {} 行。",
         len(map_tables),

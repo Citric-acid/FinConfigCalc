@@ -8,7 +8,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 PYPROJECT_PATH = ROOT / "pyproject.toml"
 PACKAGE_INIT_PATH = ROOT / "src" / "fin_config_calc" / "__init__.py"
@@ -36,8 +35,7 @@ def capture(command: list[str]) -> str:
         command,
         cwd=ROOT,
         check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
     )
     return result.stdout.strip()
@@ -64,6 +62,15 @@ def read_version(path: Path, pattern: re.Pattern[str]) -> str:
     return matches[0][1]
 
 
+def read_head_version(path: Path, pattern: re.Pattern[str]) -> str:
+    relative_path = path.relative_to(ROOT).as_posix()
+    content = capture(["git", "show", f"HEAD:{relative_path}"])
+    matches = pattern.findall(content)
+    if len(matches) != 1:
+        raise ReleaseError(f"无法从 HEAD 中唯一确定 {relative_path} 的版本号。")
+    return matches[0][1]
+
+
 def replace_version(path: Path, pattern: re.Pattern[str], version: str) -> None:
     content = read_text(path)
     updated, replacements = pattern.subn(rf"\g<1>{version}\g<3>", content)
@@ -74,9 +81,7 @@ def replace_version(path: Path, pattern: re.Pattern[str], version: str) -> None:
 
 def ensure_release_preconditions(version: str) -> str:
     if not EXPECTED_PYTHON.is_file():
-        raise ReleaseError(
-            "缺少 .venv\\python.exe。请先创建项目环境并安装依赖，再重新执行发布。"
-        )
+        raise ReleaseError("缺少 .venv\\python.exe。请先创建项目环境并安装依赖，再重新执行发布。")
     if Path(sys.executable).resolve() != EXPECTED_PYTHON.resolve():
         raise ReleaseError("必须使用 .\\.venv\\python.exe 运行发布脚本。")
 
@@ -101,8 +106,27 @@ def ensure_release_preconditions(version: str) -> str:
         raise ReleaseError(
             "pyproject.toml 与 src\\fin_config_calc\\__init__.py 的当前版本号不一致。"
         )
-    if parse_version(version) <= parse_version(pyproject_version):
-        raise ReleaseError(f"新版本 {version} 必须高于当前版本 {pyproject_version}。")
+    target = parse_version(version)
+    current = parse_version(pyproject_version)
+    if target < current:
+        raise ReleaseError(f"新版本 {version} 不能低于工作区版本 {pyproject_version}。")
+    if target == current:
+        head_pyproject_version = read_head_version(PYPROJECT_PATH, PYPROJECT_VERSION_PATTERN)
+        head_package_version = read_head_version(PACKAGE_INIT_PATH, PACKAGE_VERSION_PATTERN)
+        changed_paths = set(capture(["git", "diff", "--name-only", "HEAD"]).splitlines())
+        version_paths = {
+            PYPROJECT_PATH.relative_to(ROOT).as_posix(),
+            PACKAGE_INIT_PATH.relative_to(ROOT).as_posix(),
+        }
+        if (
+            head_pyproject_version != head_package_version
+            or target <= parse_version(head_pyproject_version)
+            or not version_paths.issubset(changed_paths)
+        ):
+            raise ReleaseError(
+                f"新版本 {version} 必须高于当前已发布版本 {head_pyproject_version}。"
+            )
+        print(f"检测到未完成的版本更新 {version}，将从质量检查阶段继续。", flush=True)
 
     return branch
 

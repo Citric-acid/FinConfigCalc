@@ -1,6 +1,6 @@
 from collections.abc import Callable, Mapping
 from pathlib import Path
-from typing import Any, Literal, overload
+from typing import Any
 
 import polars as pl
 from loguru import logger
