@@ -4,6 +4,8 @@ from typing import Any
 import polars as pl
 from loguru import logger
 
+from fin_config_calc.utils.df_numeric import cast_numeric_columns
+
 
 class DataAllocator:
     """按照长表因子权重执行单轮分摊或多轮兜底分摊。
@@ -112,7 +114,8 @@ class DataAllocator:
 
         重要约束：
             因子表必须覆盖左表的全部连接键。某个连接键权重合计为零、字段缺失、
-            输入表为空或最终金额不守恒时会抛出 ``ValueError``。
+            输入表为空、金额包含非法或非有限数值，或最终金额不守恒时会抛出
+            ``ValueError``。金额空值和空字符串按零处理。
         """
         # 步骤 0：标准化参数并完成结构校验。replace_right 与 right_on 重叠的字段
         # 已由连接键保留，不再作为需要覆盖的目标维度。
@@ -149,9 +152,7 @@ class DataAllocator:
         # | A    | P1    | 100    |      ->     | A    | P1    | 100.0  | 0    |
         # | B    | P2    | -50    |             | B    | P2    | -50.0  | 1    |
         # +------+-------+--------+             +------+-------+--------+------+
-        left = df_left.with_columns(
-            pl.col(value_columns).cast(pl.Float64, strict=False).fill_null(0)
-        )
+        left = cast_numeric_columns(df_left, value_columns, "左表")
         left = self._group_left(left, value_columns, group_by, group_by_exclude)
         self._require_columns(left, left_keys, "聚合后的左表")
         left = left.with_row_index(self._basic_row_id)

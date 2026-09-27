@@ -6,7 +6,6 @@ __pycache__/
 dist/
 build/
 Demo/
-docs/
 tests/
 *.egg-info/
 /config.py
