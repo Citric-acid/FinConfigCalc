@@ -242,6 +242,33 @@ ui -> service -> utils
 
 ## 构建 Windows 程序
 
+### 自动发布（推荐）
+
+每次迭代完成后，使用一个命令更新版本、执行质量检查、提交并推送当前分支，最后构建
+Windows 程序：
+
+```powershell
+.\.venv\python.exe scripts\release.py 0.2.0
+```
+
+版本号必须为高于当前版本的 `X.Y.Z`。脚本按以下顺序执行，任一步失败都会立即停止：
+
+1. 检查 Git 仓库、当前分支、版本一致性和合并冲突；
+2. 同步更新 `pyproject.toml` 与 `src\fin_config_calc\__init__.py`；
+3. 安装项目、开发检查及打包依赖；
+4. 存在测试文件时运行 pytest，然后运行 Ruff 和 Pyright；
+5. 暂存当前迭代的全部变更，以 `release v<版本号>` 提交并推送当前分支；
+6. 使用 PyInstaller 构建并确认 EXE 已生成。
+
+脚本会暂存全部已跟踪和未跟踪文件，执行前请先用 `git status --short` 确认工作区只包含
+本次迭代应发布的内容。脚本不创建 Git 标签或 GitHub Release。构建成功后仍需分发完整的
+`dist\FinConfigCalc-<版本号>` 目录，而不是只复制其中的 EXE。
+
+在 Copilot 中也可以调用项目技能 `release-fin-config-calc`。该技能会先检查待提交文件并在
+缺少版本号时询问，然后调用同一发布脚本。
+
+### 手工构建
+
 安装项目及打包依赖：
 
 ```powershell
@@ -265,4 +292,3 @@ dist\FinConfigCalc-0.1.1\FinConfigCalc.exe
 
 Textual 运行在终端中，因此不能使用 PyInstaller 的 `--windowed` 模式。分发时必须复制整个
 `dist\FinConfigCalc-<版本号>` 目录；目录版也更适合 Polars 等包含原生依赖的组件。
-

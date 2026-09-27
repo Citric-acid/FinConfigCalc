@@ -1,0 +1,58 @@
+---
+name: release-fin-config-calc
+description: Automate a FinConfigCalc release by setting a new version, validating changes, committing and pushing, then building the Windows EXE.
+---
+
+# Release FinConfigCalc
+
+Use this skill when the user asks to release, publish, bump the version, or package a
+new FinConfigCalc iteration.
+
+## Required input
+
+Obtain an explicit stable version in `X.Y.Z` format. If the user did not provide one,
+read the current version from `pyproject.toml` and ask for the new version with
+`ask_user`. Do not infer whether the change is major, minor, or patch.
+
+## Procedure
+
+1. Run `git status --short`, `git diff --stat`, and `git diff --cached --stat`.
+2. Review the paths that will be committed. The release script stages all tracked and
+   untracked iteration changes. Stop and ask the user if unrelated files, likely
+   secrets, unresolved conflicts, or generated artifacts are present.
+3. From the repository root, run:
+
+   ```powershell
+   .\.venv\python.exe scripts\release.py <version>
+   ```
+
+4. Do not separately edit version files, commit, push, or invoke PyInstaller. The
+   script owns the ordered workflow and stops on the first failure.
+5. Report the released version, pushed commit and branch, and the complete
+   `dist\FinConfigCalc-<version>` directory that must be distributed.
+
+## Workflow guarantees
+
+The script:
+
+- requires the repository-local `.venv\python.exe`;
+- accepts only a version greater than the synchronized current version;
+- updates both `pyproject.toml` and `src\fin_config_calc\__init__.py`;
+- refreshes editable package metadata and build dependencies;
+- runs pytest when tests exist, then Ruff lint/format checks and Pyright;
+- creates a `release v<version>` commit containing the current iteration;
+- pushes the current branch, setting its `origin` upstream when needed;
+- builds only after the push succeeds;
+- verifies `dist\FinConfigCalc-<version>\FinConfigCalc.exe` exists.
+
+If any command fails, surface the exact failed phase. Never claim the release
+completed unless the script prints `发布完成`.
+
+## Important behavior
+
+- This process does not create a Git tag or GitHub Release.
+- A failure before commit leaves the version edits in the working tree for diagnosis.
+- A failure after commit or push does not rewrite Git history. Fix the build cause,
+  then rerun the documented PyInstaller command from that pushed commit; use a new
+  version only when the fix requires another commit.
+- Distribute the whole versioned directory, not only `FinConfigCalc.exe`.
