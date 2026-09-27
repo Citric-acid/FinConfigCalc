@@ -45,6 +45,19 @@ def parse_version(value: str) -> tuple[int, int, int]:
     return int(major), int(minor), int(patch)
 
 
+def parse_commit_summary(value: str) -> str:
+    summary = value.strip()
+    if not summary:
+        raise argparse.ArgumentTypeError("提交摘要不能为空。")
+    if "\n" in summary or "\r" in summary:
+        raise argparse.ArgumentTypeError("提交摘要必须为单行。")
+    return summary
+
+
+def build_commit_message(version: str, summary: str) -> str:
+    return f"release v{version}: {summary}"
+
+
 def read_text(path: Path) -> str:
     with path.open(encoding="utf-8", newline="") as file:
         return file.read()
@@ -127,13 +140,13 @@ def run_quality_checks() -> None:
     run([python, "-m", "pyright"])
 
 
-def commit_and_push(version: str, branch: str) -> str:
+def commit_and_push(version: str, summary: str, branch: str) -> str:
     run(["git", "add", "--all"])
     staged_files = capture(["git", "diff", "--cached", "--name-only"])
     if not staged_files:
         raise ReleaseError("没有可提交的变更，发布已停止。")
 
-    run(["git", "commit", "-m", f"release v{version}"])
+    run(["git", "commit", "-m", build_commit_message(version, summary)])
     commit = capture(["git", "rev-parse", "--short", "HEAD"])
 
     upstream = subprocess.run(
@@ -168,11 +181,11 @@ def build_executable(version: str) -> Path:
     return executable
 
 
-def release(version: str) -> None:
+def release(version: str, summary: str) -> None:
     branch = ensure_release_preconditions(version)
     replace_version(PACKAGE_INIT_PATH, PACKAGE_VERSION_PATTERN, version)
     run_quality_checks()
-    commit = commit_and_push(version, branch)
+    commit = commit_and_push(version, summary, branch)
     executable = build_executable(version)
 
     print("\n发布完成：")
@@ -188,11 +201,17 @@ def main() -> int:
         description="更新版本、运行检查、提交推送并构建 Windows EXE。",
     )
     parser.add_argument("version", help="新版本号，格式为 X.Y.Z，例如 0.2.0")
+    parser.add_argument(
+        "--summary",
+        required=True,
+        type=parse_commit_summary,
+        help='人工确认的单行改动摘要，例如 "feat: 添加字段映射"',
+    )
     args = parser.parse_args()
 
     try:
         parse_version(args.version)
-        release(args.version)
+        release(args.version, args.summary)
     except (ReleaseError, subprocess.CalledProcessError) as error:
         print(f"\n发布失败：{error}", file=sys.stderr)
         return 1

@@ -6,6 +6,9 @@ __pycache__/
 dist/
 build/
 Demo/
-tests/
+tests/*
+!tests/unit/
+tests/unit/*
+!tests/unit/test_release.py
 *.egg-info/
 /config.py

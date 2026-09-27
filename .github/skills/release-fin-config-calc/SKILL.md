@@ -21,15 +21,20 @@ minor, or patch.
 2. Review the paths that will be committed. The release script stages all tracked and
    untracked iteration changes. Stop and ask the user if unrelated files, likely
    secrets, unresolved conflicts, or generated artifacts are present.
-3. From the repository root, run:
+3. Based on the reviewed changes, generate a concise Conventional Commit-style summary,
+   such as `feat: add allocation preview`, `fix: handle empty mappings`, or
+   `style: clarify release documentation`. Show the proposed summary to the user and
+   wait for explicit confirmation. Revise and reconfirm if requested; do not start the
+   release script before confirmation.
+4. From the repository root, run with the exact confirmed summary:
 
    ```powershell
-   .\.venv\python.exe scripts\release.py <version>
+   .\.venv\python.exe scripts\release.py <version> --summary "<confirmed summary>"
    ```
 
-4. Do not separately edit the version file, commit, push, or invoke PyInstaller. The
+5. Do not separately edit the version file, commit, push, or invoke PyInstaller. The
    script owns the ordered workflow and stops on the first failure.
-5. Report the released version, pushed commit and branch, and the complete
+6. Report the released version, pushed commit and branch, and the complete
    `dist\FinConfigCalc-<version>` directory that must be distributed.
 
 ## Workflow guarantees
@@ -41,13 +46,17 @@ The script:
 - updates `src\fin_config_calc\__init__.py`, the single version source;
 - refreshes editable package metadata and build dependencies;
 - runs pytest when tests exist, then Ruff lint/format checks and Pyright;
-- creates a `release v<version>` commit containing the current iteration;
+- creates a `release v<version>: <confirmed summary>` commit containing the current
+   iteration;
 - pushes the current branch, setting its `origin` upstream when needed;
 - builds only after the push succeeds;
 - verifies `dist\FinConfigCalc-<version>\FinConfigCalc.exe` exists.
 
 If any command fails, surface the exact failed phase. Never claim the release
-completed unless the script prints `发布完成`.
+completed unless the release command exits successfully and the expected versioned
+EXE exists. The `发布完成` line is informative, not required when terminal output is
+truncated. Do not infer success from file existence alone because it could be a stale
+artifact from an earlier attempt.
 
 ## Important behavior
 
