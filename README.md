@@ -253,8 +253,8 @@ Windows 程序：
 
 版本号必须为高于当前版本的 `X.Y.Z`。脚本按以下顺序执行，任一步失败都会立即停止：
 
-1. 检查 Git 仓库、当前分支、版本一致性和合并冲突；
-2. 同步更新 `pyproject.toml` 与 `src\fin_config_calc\__init__.py`；
+1. 检查 Git 仓库、当前分支、当前版本与目标版本关系以及合并冲突；
+2. 更新 `src\fin_config_calc\__init__.py` 中的 `__version__`；
 3. 安装项目、开发检查及打包依赖；
 4. 存在测试文件时运行 pytest，然后运行 Ruff 和 Pyright；
 5. 暂存当前迭代的全部变更，以 `release v<版本号>` 提交并推送当前分支；
@@ -287,7 +287,8 @@ Windows 程序：
 dist\FinConfigCalc-0.1.1\FinConfigCalc.exe
 ```
 
-版本号取自 `pyproject.toml` 中的 `version`；修改后需先重新执行 `pip install -e .`，再打包。
+版本号唯一来源是 `src\fin_config_calc\__init__.py` 中的 `__version__`；修改后需先重新执行
+`pip install -e .`，刷新本地安装元数据，再打包。
 不同版本的输出目录互不覆盖，可在 `dist` 中并存。
 
 Textual 运行在终端中，因此不能使用 PyInstaller 的 `--windowed` 模式。分发时必须复制整个

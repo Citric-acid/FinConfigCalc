@@ -9,13 +9,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PYPROJECT_PATH = ROOT / "pyproject.toml"
 PACKAGE_INIT_PATH = ROOT / "src" / "fin_config_calc" / "__init__.py"
 EXPECTED_PYTHON = ROOT / ".venv" / "python.exe"
 SEMVER_PATTERN = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
-PYPROJECT_VERSION_PATTERN = re.compile(
-    r'(?m)^(version\s*=\s*")([^"]+)(")',
-)
 PACKAGE_VERSION_PATTERN = re.compile(
     r'(?m)^(__version__\s*=\s*")([^"]+)(")',
 )
@@ -100,32 +96,17 @@ def ensure_release_preconditions(version: str) -> str:
     if unresolved:
         raise ReleaseError(f"存在未解决的合并冲突：\n{unresolved}")
 
-    pyproject_version = read_version(PYPROJECT_PATH, PYPROJECT_VERSION_PATTERN)
     package_version = read_version(PACKAGE_INIT_PATH, PACKAGE_VERSION_PATTERN)
-    if pyproject_version != package_version:
-        raise ReleaseError(
-            "pyproject.toml 与 src\\fin_config_calc\\__init__.py 的当前版本号不一致。"
-        )
     target = parse_version(version)
-    current = parse_version(pyproject_version)
+    current = parse_version(package_version)
     if target < current:
-        raise ReleaseError(f"新版本 {version} 不能低于工作区版本 {pyproject_version}。")
+        raise ReleaseError(f"新版本 {version} 不能低于工作区版本 {package_version}。")
     if target == current:
-        head_pyproject_version = read_head_version(PYPROJECT_PATH, PYPROJECT_VERSION_PATTERN)
         head_package_version = read_head_version(PACKAGE_INIT_PATH, PACKAGE_VERSION_PATTERN)
         changed_paths = set(capture(["git", "diff", "--name-only", "HEAD"]).splitlines())
-        version_paths = {
-            PYPROJECT_PATH.relative_to(ROOT).as_posix(),
-            PACKAGE_INIT_PATH.relative_to(ROOT).as_posix(),
-        }
-        if (
-            head_pyproject_version != head_package_version
-            or target <= parse_version(head_pyproject_version)
-            or not version_paths.issubset(changed_paths)
-        ):
-            raise ReleaseError(
-                f"新版本 {version} 必须高于当前已发布版本 {head_pyproject_version}。"
-            )
+        package_path = PACKAGE_INIT_PATH.relative_to(ROOT).as_posix()
+        if target <= parse_version(head_package_version) or package_path not in changed_paths:
+            raise ReleaseError(f"新版本 {version} 必须高于当前已发布版本 {head_package_version}。")
         print(f"检测到未完成的版本更新 {version}，将从质量检查阶段继续。", flush=True)
 
     return branch
@@ -189,7 +170,6 @@ def build_executable(version: str) -> Path:
 
 def release(version: str) -> None:
     branch = ensure_release_preconditions(version)
-    replace_version(PYPROJECT_PATH, PYPROJECT_VERSION_PATTERN, version)
     replace_version(PACKAGE_INIT_PATH, PACKAGE_VERSION_PATTERN, version)
     run_quality_checks()
     commit = commit_and_push(version, branch)

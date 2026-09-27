@@ -11,8 +11,9 @@ new FinConfigCalc iteration.
 ## Required input
 
 Obtain an explicit stable version in `X.Y.Z` format. If the user did not provide one,
-read the current version from `pyproject.toml` and ask for the new version with
-`ask_user`. Do not infer whether the change is major, minor, or patch.
+read the current version from `src/fin_config_calc/__init__.py` (`__version__`) and
+ask for the new version with `ask_user`. Do not infer whether the change is major,
+minor, or patch.
 
 ## Procedure
 
@@ -26,7 +27,7 @@ read the current version from `pyproject.toml` and ask for the new version with
    .\.venv\python.exe scripts\release.py <version>
    ```
 
-4. Do not separately edit version files, commit, push, or invoke PyInstaller. The
+4. Do not separately edit the version file, commit, push, or invoke PyInstaller. The
    script owns the ordered workflow and stops on the first failure.
 5. Report the released version, pushed commit and branch, and the complete
    `dist\FinConfigCalc-<version>` directory that must be distributed.
@@ -36,8 +37,8 @@ read the current version from `pyproject.toml` and ask for the new version with
 The script:
 
 - requires the repository-local `.venv\python.exe`;
-- accepts only a version greater than the synchronized current version;
-- updates both `pyproject.toml` and `src\fin_config_calc\__init__.py`;
+- accepts only a version greater than the current package version in `__init__.py`;
+- updates `src\fin_config_calc\__init__.py`, the single version source;
 - refreshes editable package metadata and build dependencies;
 - runs pytest when tests exist, then Ruff lint/format checks and Pyright;
 - creates a `release v<version>` commit containing the current iteration;
@@ -51,7 +52,7 @@ completed unless the script prints `发布完成`.
 ## Important behavior
 
 - This process does not create a Git tag or GitHub Release.
-- A failure before commit leaves the version edits in the working tree for diagnosis.
+- A failure before commit leaves the version edit in the working tree for diagnosis.
 - A failure after commit or push does not rewrite Git history. Fix the build cause,
   then rerun the documented PyInstaller command from that pushed commit; use a new
   version only when the fix requires another commit.
