@@ -248,7 +248,7 @@ ui -> service -> utils
 Windows 程序：
 
 ```powershell
-.\.venv\python.exe scripts\release.py 0.2.0 --summary "feat: 描述本次改动"
+.\.venv\python.exe scripts\release.py 0.2.0 --summary "feat: 用中文描述本次改动"
 ```
 
 版本号必须为高于当前版本的 `X.Y.Z`。脚本按以下顺序执行，任一步失败都会立即停止：
@@ -260,9 +260,9 @@ Windows 程序：
 5. 暂存当前迭代的全部变更，以 `release v<版本号>: <摘要>` 提交并推送当前分支；
 6. 使用 PyInstaller 构建并确认 EXE 已生成。
 
-`--summary` 必填，摘要应采用 Conventional Commit 类型前缀，例如 `feat: ...`、`fix: ...`、
-`style: ...`。在 Copilot 中发布时，AI 会先根据待提交改动生成摘要并请你确认；确认后才会
-执行发布。手动运行脚本时，请自行提供已确认的摘要。
+`--summary` 必填，类型前缀使用英文小写，例如 `feat`、`fix`、`style`；冒号后的改动摘要必须为中文。
+在 Copilot 中发布时，AI 会先根据待提交改动生成完整提交标题并请你确认；确认后才会执行发布。
+手动运行脚本时，请自行提供已确认的中文摘要。
 
 脚本会暂存全部已跟踪和未跟踪文件，执行前请先用 `git status --short` 确认工作区只包含
 本次迭代应发布的内容。脚本不创建 Git 标签或 GitHub Release。构建成功后仍需分发完整的
